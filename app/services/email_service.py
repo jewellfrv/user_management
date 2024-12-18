@@ -35,3 +35,26 @@ class EmailService:
             "verification_url": verification_url,
             "email": user.email
         }, 'email_verification')
+    
+    async def send_user_notification(self, user: User, subject: str, message: str = None):
+        """
+        Sends a notification email to a user.
+        
+        Args:
+            user (User): The user object.
+            subject (str): The email subject.
+            message (str): The email body/message.
+        """
+        # Default upgrade message if no message is provided
+        if message is None:
+            message = "We are pleased to inform you that your account has been upgraded to Professional Status."
+
+        email_data = {
+            "name": user.first_name,
+            "message": message,
+            "email": user.email
+            
+        }
+        
+        html_content = self.template_manager.render_template('professional', **email_data)
+        self.smtp_client.send_email(subject, html_content, user.email) 

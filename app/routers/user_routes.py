@@ -109,10 +109,12 @@ async def update_profile(
         links=create_user_links(updated_user.id, None)  # Links are optional for this
     )
 
+
 @router.post("/profile/upgrade", response_model=UserResponse, tags=["User Profile"])
 async def upgrade_to_professional_status(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    email_service: EmailService = Depends(get_email_service)  # Injecting email_service here
 ):
     """
     Upgrade the currently authenticated user's account to professional status.
@@ -130,10 +132,15 @@ async def upgrade_to_professional_status(
     if user.role == "PROFESSIONAL":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is already a professional")
 
-     # Upgrade the user role to "PROFESSIONAL"
+    # Upgrade the user role to "PROFESSIONAL"
     updated_user = await UserService.update(db, user_id, {"role": "PROFESSIONAL"})
     if not updated_user:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upgrade user status")
+
+    # Send the upgrade notification email
+    subject = "Congratulations on Your Professional Status Upgrade"
+    message = "We are pleased to inform you that your account has been upgraded to Professional Status."
+    await email_service.send_user_notification(user, subject, message)  # Sending email notification
 
     return UserResponse.model_construct(
         id=updated_user.id,
@@ -151,7 +158,6 @@ async def upgrade_to_professional_status(
         updated_at=updated_user.updated_at,
         links=create_user_links(updated_user.id, None)  # Links are optional here
     )
-
 
 # Additional endpoints for update, delete, create, and list users follow a similar pattern, using
 # asynchronous database operations, handling security with OAuth2PasswordBearer, and enhancing response

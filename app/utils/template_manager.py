@@ -36,6 +36,7 @@ class TemplateManager:
         """Render a markdown template with given context, applying advanced email styles."""
         header = self._read_template('header.md')
         footer = self._read_template('footer.md')
+        
 
         # Read main template and format it with provided context
         main_template = self._read_template(f'{template_name}.md')
