@@ -71,6 +71,44 @@ async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(g
         links=create_user_links(user.id, request)  
     )
 
+@router.put("/profile", response_model=UserResponse, tags=["User Profile"])
+async def update_profile(
+    profile_data: UserUpdate,  # Reuse your `UserUpdate` schema
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update the currently authenticated user's profile.
+
+    - **profile_data**: UserUpdate model with updated profile fields.
+    """
+
+     # Use the current user's ID to fetch their data
+    user_id = current_user["id"]
+    user_data = profile_data.model_dump(exclude_unset=True)
+    
+    updated_user = await UserService.update(db, user_id, user_data)
+    if not updated_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+ # Return the updated user profile
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        bio=updated_user.bio,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        nickname=updated_user.nickname,
+        email=updated_user.email,
+        role=updated_user.role,
+        last_login_at=updated_user.last_login_at,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, None)  # Links are optional for this
+    )
+
 # Additional endpoints for update, delete, create, and list users follow a similar pattern, using
 # asynchronous database operations, handling security with OAuth2PasswordBearer, and enhancing response
 # models with dynamic HATEOAS links.
