@@ -109,6 +109,50 @@ async def update_profile(
         links=create_user_links(updated_user.id, None)  # Links are optional for this
     )
 
+@router.post("/profile/upgrade", response_model=UserResponse, tags=["User Profile"])
+async def upgrade_to_professional_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upgrade the currently authenticated user's account to professional status.
+
+    This endpoint updates the user's role to "PROFESSIONAL".
+    """
+    user_id = current_user["id"]
+
+    # Fetch the current user details
+    user = await UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Check if the user is already a professional
+    if user.role == "PROFESSIONAL":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is already a professional")
+
+     # Upgrade the user role to "PROFESSIONAL"
+    updated_user = await UserService.update(db, user_id, {"role": "PROFESSIONAL"})
+    if not updated_user:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upgrade user status")
+
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        bio=updated_user.bio,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        nickname=updated_user.nickname,
+        email=updated_user.email,
+        role=updated_user.role,
+        last_login_at=updated_user.last_login_at,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, None)  # Links are optional here
+    )
+
+
 # Additional endpoints for update, delete, create, and list users follow a similar pattern, using
 # asynchronous database operations, handling security with OAuth2PasswordBearer, and enhancing response
 # models with dynamic HATEOAS links.
